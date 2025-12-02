@@ -8,8 +8,7 @@ public class App {
 
         Scanner scanner = new Scanner(System.in);
         Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet results = null;
+
 
         do {
             System.out.print("\nWhat do you want to do?\n\t[1] Display all products\n\t[2] Display all customers\n\t[0] Exit\n----\nSelect an Option: ");
@@ -31,20 +30,6 @@ public class App {
                 System.out.println(e.getMessage());
                 e.printStackTrace();
             }finally {
-                if (results != null) {
-                    try {
-                        results.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (statement != null) {
-                    try {
-                        statement.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
                 if (connection!= null) {
                     try {
                         connection.close();
@@ -66,12 +51,14 @@ public class App {
             throw new RuntimeException(e);
         }
         String query = "SELECT * FROM products";
+        PreparedStatement statement = null;
+        ResultSet results = null;
 
 
         try {
-            PreparedStatement statement = connection.prepareStatement(query);
+            statement = connection.prepareStatement(query);
             // 2. Execute your query
-            ResultSet results = statement.executeQuery(query);
+            results = statement.executeQuery(query);
             // process the results
             System.out.println("Id   Name                                Price   Stock");
             System.out.println("---- ----------------------------------- ------- ------");
@@ -86,6 +73,21 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
+        }finally{
+            if (results != null) {
+                try {
+                    results.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
     public static void displayCustomers(Connection connection) {
@@ -96,12 +98,14 @@ public class App {
             throw new RuntimeException(e);
         }
         String query = "SELECT * FROM customers WHERE CompanyName !='IT' ORDER BY Country";
+        PreparedStatement statement = null;
+        ResultSet results = null;
 
         try {
 
-            PreparedStatement statement = connection.prepareStatement(query);
+            statement = connection.prepareStatement(query);
 
-            ResultSet results = statement.executeQuery(query);
+            results = statement.executeQuery(query);
 
             System.out.println("Contact Name                   Company Name                               City            Country       Phone #");
             System.out.println("------------------------------ ------------------------------------------ --------------- ------------- ------------");
@@ -117,6 +121,21 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
+        }finally{
+            if (results != null) {
+                try {
+                    results.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
