@@ -2,12 +2,15 @@ package com.pluralsight;
 
 import java.sql.*;
 import java.util.Scanner;
+import org.apache.commons.dbcp2.BasicDataSource;
 
 public class App {
     private static Connection connection = null;
     private static Scanner scanner = new Scanner(System.in);
+    private static final String url = "jdbc:mysql://127.0.0.1:3306/";
+
     public static void main(String[] args) {
-        loadConnection(args[0],args[1]);
+        loadConnection("northwind",args[0],args[1]);
         run();
 
     }
@@ -26,7 +29,7 @@ public class App {
         switch (getUserChoice("Select an Option: ")) {
             case 1 -> displayProducts();
             case 2 -> displayCustomers();
-            case 3 -> {displayCategories();productsByCat(getUserChoice("\nWhat category of products would you like to see?\nCategory ID: "));}
+            case 3 -> runDisplayCat();
             case 0 -> exit();
             default -> System.out.println("Input not recognized. Please try again.");
         }
@@ -102,6 +105,20 @@ public class App {
         }
 
     }
+    public static void runDisplayCat(){
+
+            boolean validated = false;
+            do{
+                displayCategories();
+                int choice = getUserChoice("\nWhat category of products would you like to see?\nCategory ID: ");
+                if (validateCat(choice)){
+                    validated = true;
+                    productsByCat(choice);
+                }else{
+                    System.out.print("\nInput not recognized. Please try again");
+                }
+            }while(!validated);
+    }
     public static void productsByCat(int choice){
 
         String query = "SELECT * FROM products WHERE CategoryID = ?";
@@ -112,15 +129,16 @@ public class App {
             results = statement.executeQuery();
 
 
-            System.out.println("\nId   Name                                Price   Stock");
-            System.out.println("---- ----------------------------------- ------- ------");
-            while (results.next()) {
-                System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
-                        results.getInt("ProductID"),
-                        results.getString("ProductName"),
-                        results.getDouble("UnitPrice"),
-                        results.getInt("UnitsInStock"));
-            }
+                System.out.println("\nId   Name                                Price   Stock");
+                System.out.println("---- ----------------------------------- ------- ------");
+                while (results.next()) {
+                    System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
+                            results.getInt("ProductID"),
+                            results.getString("ProductName"),
+                            results.getDouble("UnitPrice"),
+                            results.getInt("UnitsInStock"));
+                }
+
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -136,35 +154,42 @@ public class App {
         }
     }
     public static boolean validateCat(int choice){
-        String query = "SELECT COUNT(CategoryID) FROM products";
+        String query = "SELECT CategoryID FROM products WHERE CategoryID = ?";
+        ResultSet results = null;
 
         try (PreparedStatement statement = connection.prepareStatement(query);
-             ResultSet results = statement.executeQuery();) {
+             ) {
+            statement.setInt(1, choice);
+            results = statement.executeQuery();
 
-
-
-
-            System.out.println("\nId   Name                                Price   Stock");
-            System.out.println("---- ----------------------------------- ------- ------");
-            while (results.next()) {
-                System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
-                        results.getInt("ProductID"),
-                        results.getString("ProductName"),
-                        results.getDouble("UnitPrice"),
-                        results.getInt("UnitsInStock"));
+            if (results.next() ){
+                return true;
+            }else{
+                return false;
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
+        }finally{
+            if (results != null){
+                try{
+                    results.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
+        return true;
     }
-    public static void loadConnection(String user,String pass){
-        try{
-            connection = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/northwind",
-                    user,
-                    pass);
+    public static void loadConnection(String database, String username, String password) {
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setUrl(url + database);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
+
+        try {
+            connection = dataSource.getConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
