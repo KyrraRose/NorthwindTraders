@@ -96,7 +96,7 @@ public class App {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        String query = "SELECT * FROM customers";
+        String query = "SELECT * FROM customers WHERE CompanyName !='IT' ORDER BY Country";
 
         Connection connection = null;
         PreparedStatement statement = null;
