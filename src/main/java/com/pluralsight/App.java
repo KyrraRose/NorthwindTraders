@@ -4,63 +4,41 @@ import java.sql.*;
 import java.util.Scanner;
 
 public class App {
+    private static Connection connection = null;
+    private static Scanner scanner = new Scanner(System.in);
     public static void main(String[] args) {
-
-        Scanner scanner = new Scanner(System.in);
-        Connection connection = null;
-
-
-        do {
-            System.out.print("\nWhat do you want to do?\n\t[1] Display all products\n\t[2] Display all customers\n\t[0] Exit\n----\nSelect an Option: ");
-            try {
-                connection = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/northwind",
-                        args[0],
-                        args[1]);
-
-
-                int choice = scanner.nextInt();
-                scanner.nextLine();
-                switch (choice) {
-                    case 1 -> displayProducts(connection);
-                    case 2 -> displayCustomers(connection);
-                    case 0 -> exit();
-                }
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-                e.printStackTrace();
-            }finally {
-                if (connection!= null) {
-                    try {
-                        connection.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            }
-        }while(true);
-
-
+        loadConnection(args[0],args[1]);
+        run();
 
     }
-    public static void displayProducts(Connection connection){
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+    public static void run(){
+        do {
+                mainMenu();
+                menuSelection();
+                pressEnter();
+
+        }while(true);
+    }
+    public static void mainMenu(){
+        System.out.print("\nWhat do you want to do?\n\t[1] Display all products\n\t[2] Display all customers\n\t[3] Display Categories\n\t[0] Exit\n---------------------------\n");
+    }
+    public static void menuSelection(){
+        switch (getUserChoice("Select an Option: ")) {
+            case 1 -> displayProducts();
+            case 2 -> displayCustomers();
+            case 3 -> {displayCategories();productsByCat(getUserChoice("\nWhat category of products would you like to see?\nCategory ID: "));}
+            case 0 -> exit();
+            default -> System.out.println("Input not recognized. Please try again.");
         }
+    }
+    public static void displayProducts(){
+
         String query = "SELECT * FROM products";
-        PreparedStatement statement = null;
-        ResultSet results = null;
 
+        try (PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet results = statement.executeQuery(query);) {
 
-        try {
-            statement = connection.prepareStatement(query);
-            // 2. Execute your query
-            results = statement.executeQuery(query);
-            // process the results
-            System.out.println("Id   Name                                Price   Stock");
+            System.out.println("\nId   Name                                Price   Stock");
             System.out.println("---- ----------------------------------- ------- ------");
             while (results.next()) {
                 System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
@@ -73,41 +51,18 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        }finally{
-            if (results != null) {
-                try {
-                    results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
-    public static void displayCustomers(Connection connection) {
+    public static void displayCustomers() {
 
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+
         String query = "SELECT * FROM customers WHERE CompanyName !='IT' ORDER BY Country";
-        PreparedStatement statement = null;
-        ResultSet results = null;
 
-        try {
+        try (PreparedStatement statement = connection.prepareStatement(query);
 
-            statement = connection.prepareStatement(query);
+            ResultSet results = statement.executeQuery(query);){
 
-            results = statement.executeQuery(query);
-
-            System.out.println("Contact Name                   Company Name                               City            Country       Phone #");
+            System.out.println("\nContact Name                   Company Name                               City            Country       Phone #");
             System.out.println("------------------------------ ------------------------------------------ --------------- ------------- ------------");
             while (results.next()) {
                 System.out.printf("%-30s %-42s %-15s %-13s %-12s%n",
@@ -121,25 +76,136 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        }finally{
-            if (results != null) {
-                try {
-                    results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        }
+
+    }
+    public static void displayCategories() {
+
+
+        String query = "SELECT * FROM categories ORDER BY CategoryName";
+
+        try (PreparedStatement statement = connection.prepareStatement(query);
+
+             ResultSet results = statement.executeQuery(query);){
+
+            System.out.println("\nID    Category ");
+            System.out.println("--- ------------------");
+            while (results.next()) {
+                System.out.printf("%-3d %-14s%n",
+                        results.getInt("CategoryID"),
+                        results.getString("CategoryName"));
             }
-            if (statement != null) {
-                try {
-                    statement.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+
+    }
+    public static void productsByCat(int choice){
+
+        String query = "SELECT * FROM products WHERE CategoryID = ?";
+        ResultSet results = null;
+
+        try (PreparedStatement statement = connection.prepareStatement(query);) {
+            statement.setInt(1, choice);
+            results = statement.executeQuery();
+
+
+            System.out.println("\nId   Name                                Price   Stock");
+            System.out.println("---- ----------------------------------- ------- ------");
+            while (results.next()) {
+                System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
+                        results.getInt("ProductID"),
+                        results.getString("ProductName"),
+                        results.getDouble("UnitPrice"),
+                        results.getInt("UnitsInStock"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }finally{
+            if (results != null){
+                try{
+                results.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
     }
+    public static boolean validateCat(int choice){
+        String query = "SELECT COUNT(CategoryID) FROM products";
 
+        try (PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet results = statement.executeQuery();) {
+
+
+
+
+            System.out.println("\nId   Name                                Price   Stock");
+            System.out.println("---- ----------------------------------- ------- ------");
+            while (results.next()) {
+                System.out.printf("%-4d %-35s $%-7.2f %-6d%n",
+                        results.getInt("ProductID"),
+                        results.getString("ProductName"),
+                        results.getDouble("UnitPrice"),
+                        results.getInt("UnitsInStock"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+    }
+    public static void loadConnection(String user,String pass){
+        try{
+            connection = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/northwind",
+                    user,
+                    pass);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static int getUserChoice(String prompt) {
+        System.out.print(prompt);
+
+        boolean notChosen = true;
+        int option = -1;
+
+        do {
+            try {
+                option = scanner.nextInt();
+                scanner.nextLine();
+
+                if (option != -1) notChosen = false;
+
+            } catch (Exception e) {
+                System.out.print("Invalid Type Entered. " + prompt);
+                scanner.nextLine();
+            }
+        } while (notChosen);
+
+        return option;
+    }
+    public static void pressEnter(){
+        System.out.println("---------------------\n\nPress [ENTER] to continue..");
+        scanner.nextLine();
+        clearScreen();
+    }
+    public static void clearScreen() {
+        for (int i = 0; i < 60; i++) {
+            System.out.println();
+        }
+    }
     public static void exit(){
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         System.out.println("Exiting!");
         System.exit(0);
     }
