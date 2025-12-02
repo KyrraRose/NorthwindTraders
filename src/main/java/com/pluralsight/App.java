@@ -7,27 +7,59 @@ public class App {
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet results = null;
 
         do {
             System.out.print("\nWhat do you want to do?\n\t[1] Display all products\n\t[2] Display all customers\n\t[0] Exit\n----\nSelect an Option: ");
             try {
+                connection = DriverManager.getConnection(
+                        "jdbc:mysql://localhost:3306/northwind",
+                        args[0],
+                        args[1]);
+
+
                 int choice = scanner.nextInt();
                 scanner.nextLine();
                 switch (choice) {
-                    case 1 -> displayProducts(args);
-                    case 2 -> displayCustomers(args);
+                    case 1 -> displayProducts(connection);
+                    case 2 -> displayCustomers(connection);
                     case 0 -> exit();
                 }
             } catch (Exception e) {
                 System.out.println(e.getMessage());
                 e.printStackTrace();
+            }finally {
+                if (results != null) {
+                    try {
+                        results.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (statement != null) {
+                    try {
+                        statement.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (connection!= null) {
+                    try {
+                        connection.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
             }
         }while(true);
 
 
 
     }
-    public static void displayProducts(String[] args){
+    public static void displayProducts(Connection connection){
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
@@ -35,22 +67,11 @@ public class App {
         }
         String query = "SELECT * FROM products";
 
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet results = null;
 
         try {
-
-            connection = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/northwind",
-                    args[0],
-                    args[1]);
-
-            statement = connection.prepareStatement(query);
-
-
+            PreparedStatement statement = connection.prepareStatement(query);
             // 2. Execute your query
-            results = statement.executeQuery(query);
+            ResultSet results = statement.executeQuery(query);
             // process the results
             System.out.println("Id   Name                                Price   Stock");
             System.out.println("---- ----------------------------------- ------- ------");
@@ -65,31 +86,9 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        } finally {
-            if (results != null) {
-                try {
-                    results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
-    public static void displayCustomers(String[] args) {
+    public static void displayCustomers(Connection connection) {
 
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -98,19 +97,11 @@ public class App {
         }
         String query = "SELECT * FROM customers WHERE CompanyName !='IT' ORDER BY Country";
 
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet results = null;
         try {
 
-            connection = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/northwind",
-                    args[0],
-                    args[1]);
+            PreparedStatement statement = connection.prepareStatement(query);
 
-           statement = connection.prepareStatement(query);
-
-            results = statement.executeQuery(query);
+            ResultSet results = statement.executeQuery(query);
 
             System.out.println("Contact Name                   Company Name                               City            Country       Phone #");
             System.out.println("------------------------------ ------------------------------------------ --------------- ------------- ------------");
@@ -126,28 +117,6 @@ public class App {
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        } finally {
-            if (results != null) {
-                try {
-                    results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
