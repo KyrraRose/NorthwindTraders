@@ -122,12 +122,10 @@ public class App {
     public static void productsByCat(int choice){
 
         String query = "SELECT * FROM products WHERE CategoryID = ?";
-        ResultSet results = null;
 
         try (PreparedStatement statement = connection.prepareStatement(query);) {
             statement.setInt(1, choice);
-            results = statement.executeQuery();
-
+            try (ResultSet results = statement.executeQuery();) {
 
                 System.out.println("\nId   Name                                Price   Stock");
                 System.out.println("---- ----------------------------------- ------- ------");
@@ -139,48 +137,28 @@ public class App {
                             results.getInt("UnitsInStock"));
                 }
 
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        }finally{
-            if (results != null){
-                try{
-                results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
     public static boolean validateCat(int choice){
         String query = "SELECT CategoryID FROM products WHERE CategoryID = ?";
-        ResultSet results = null;
 
         try (PreparedStatement statement = connection.prepareStatement(query);
              ) {
             statement.setInt(1, choice);
-            results = statement.executeQuery();
-
-            if (results.next() ){
-                return true;
-            }else{
-                return false;
+            try(ResultSet results = statement.executeQuery();){
+                return results.next();
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
-        }finally{
-            if (results != null){
-                try{
-                    results.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
-        return true;
+        return false;
     }
     public static void loadConnection(String database, String username, String password) {
         BasicDataSource dataSource = new BasicDataSource();
